@@ -1,14 +1,24 @@
 package com.hexaware.petpals.presentation.main;
 
-import com.hexaware.petpals.dao.*;
-import com.hexaware.petpals.entity.model.*;
-import com.hexaware.petpals.exception.*;
+import com.hexaware.petpals.dao.IPetDao;
+import com.hexaware.petpals.dao.IPetDaoImpl;
+import com.hexaware.petpals.entity.model.CashDonation;
+import com.hexaware.petpals.entity.model.Donation;
+import com.hexaware.petpals.entity.model.ItemDonation;
+import com.hexaware.petpals.entity.model.Pet;
+import com.hexaware.petpals.entity.model.PetShelter;
+import com.hexaware.petpals.exception.AdoptionException;
+import com.hexaware.petpals.exception.InvalidPetAgeException;
+import com.hexaware.petpals.exception.InsufficientFundsException;
+
+import com.hexaware.petpals.util.DBConnUtil;
+import com.hexaware.petpals.util.DBPropertyUtil;
 import com.hexware.petpals.service.AdoptionService;
 import com.hexware.petpals.service.DonationService;
 import com.hexware.petpals.service.PetService;
-import com.hexware.petpals.util.DBPropertyUtil;
 
 import java.io.IOException;
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,42 +32,58 @@ public class MainModule {
 
     public static void main(String[] args) {
         try {
-            String connectionString = DBPropertyUtil.getConnectionString("database.properties");
-            IPetDao petDAO = new IPetDaoImpl(connectionString); // Ensure this constructor is handling exceptions
-            petService = new PetService(petDAO);
-            donationService = new DonationService();
-            PetShelter shelter = new PetShelter();
-            adoptionService = new AdoptionService(shelter);
-
-            while (true) {
-                displayMenu();
-                int choice = scanner.nextInt();
-                scanner.nextLine(); 
-
-                switch (choice) {
-                    case 1:
-                        addPet();
-                        break;
-                    case 2:
-                        listPets();
-                        break;
-                    case 3:
-                        makeDonation();
-                        break;
-                    case 4:
-                        adoptPet();
-                        break;
-                    case 5:
-                        System.out.println("Thank you.");
-                        return;
-                    default:
-                        System.out.println("Invalid choice. Please try again.");
+            String connectionString = DBPropertyUtil.getConnectionString();
+            System.out.println("Connection String: " + connectionString);
+            
+            try (Connection conn = DBConnUtil.getConnection()) {
+                if (conn != null) {
+                    System.out.println("Database connected successfully!");
                 }
+
+                IPetDao petDAO = new IPetDaoImpl();
+                petService = new PetService(petDAO);
+                donationService = new DonationService();
+                PetShelter shelter = new PetShelter();
+                adoptionService = new AdoptionService(shelter);
+                menuLoop();
             }
-        } catch (IOException | SQLException e) {
-            System.out.println("Error initializing the application: " + e.getMessage());
+        } catch (IOException e) {
+            System.out.println("Error loading properties file: " + e.getMessage());
+        } catch (SQLException e) {
+            System.out.println("Database connection error: " + e.getMessage());
         } catch (Exception e) {
             System.out.println("An unexpected error occurred: " + e.getMessage());
+            e.printStackTrace(); 
+        } finally {
+            scanner.close(); 
+        }
+    }
+
+    private static void menuLoop() {
+        while (true) {
+            displayMenu();
+            int choice = scanner.nextInt();
+            scanner.nextLine();
+
+            switch (choice) {
+                case 1:
+                    addPet();
+                    break;
+                case 2:
+                    listPets();
+                    break;
+                case 3:
+                    makeDonation();
+                    break;
+                case 4:
+                    adoptPet();
+                    break;
+                case 5:
+                    System.out.println("Thank you.");
+                    return;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
         }
     }
 
@@ -76,7 +102,7 @@ public class MainModule {
         String name = scanner.nextLine();
         System.out.print("Enter pet age: ");
         int age = scanner.nextInt();
-        scanner.nextLine(); 
+        scanner.nextLine(); // Clear the newline
         System.out.print("Enter pet breed: ");
         String breed = scanner.nextLine();
 
@@ -112,7 +138,7 @@ public class MainModule {
         String donorName = scanner.nextLine();
         System.out.print("Enter donation amount: ");
         double amount = scanner.nextDouble();
-        scanner.nextLine(); 
+        scanner.nextLine(); // Clear the newline
 
         System.out.print("Is this a cash donation? (yes/no): ");
         String donationType = scanner.nextLine().toLowerCase();
@@ -149,7 +175,7 @@ public class MainModule {
 
             System.out.print("Enter the number of the pet you want to adopt: ");
             int choice = scanner.nextInt();
-            scanner.nextLine(); 
+            scanner.nextLine(); // Clear the newline
 
             if (choice < 1 || choice > pets.size()) {
                 System.out.println("Invalid choice.");
@@ -158,6 +184,7 @@ public class MainModule {
 
             Pet selectedPet = pets.get(choice - 1);
             adoptionService.adoptPet(selectedPet);
+            System.out.println("You have successfully adopted " + selectedPet.getName() + "!");
         } catch (SQLException e) {
             System.out.println("Database error: " + e.getMessage());
         } catch (AdoptionException e) {

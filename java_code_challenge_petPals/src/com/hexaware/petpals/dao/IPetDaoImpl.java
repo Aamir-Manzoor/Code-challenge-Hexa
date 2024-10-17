@@ -1,7 +1,7 @@
 package com.hexaware.petpals.dao;
 
-import com.hexaware.petpals.entity.model.*;
-import com.hexware.petpals.util.DBConnUtil;
+import com.hexaware.petpals.entity.model.Pet;
+import com.hexaware.petpals.util.DBConnUtil;
 
 import java.io.IOException;
 import java.sql.*;
@@ -11,12 +11,12 @@ import java.util.List;
 public class IPetDaoImpl implements IPetDao {
     private Connection connection;
 
-    public IPetDaoImpl(String connectionString) throws SQLException, IOException {
-        this.connection = DBConnUtil.getConnection(connectionString);
+    public IPetDaoImpl() throws SQLException, IOException {
+        this.connection = DBConnUtil.getConnection();
     }
 
     @Override
-    public void addPet(Pet pet) throws SQLException  {
+    public void addPet(Pet pet) throws SQLException {
         String sql = "INSERT INTO pets (name, age, breed) VALUES (?, ?, ?)";
         try (PreparedStatement pstmt = connection.prepareStatement(sql)) {
             pstmt.setString(1, pet.getName());
